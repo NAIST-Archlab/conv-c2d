@@ -4,9 +4,9 @@
 ##                nakashim@is.naist.jp ##
 
 PROGRAM	      = libemax7nc.a
-ifeq ($(MACHTYPE),aarch64)
-CFLAGS        = -O2 -fsigned-char -fcommon
-LDFLAGS       = 
+ifeq ($(MACHTYPE),x86_64)
+CFLAGS        = -O2 -fsigned-char
+LDFLAGS       =
 else
 CFLAGS        = -O2 -m32 -fsigned-char
 LDFLAGS       = -m32
