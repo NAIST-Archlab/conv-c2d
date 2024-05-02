@@ -18,7 +18,7 @@ typedef struct {Ull u[2];} Dll;
 #endif
 #endif
 
-#if 1
+#ifndef EMAX7LIB
 void /*__attribute__((always_inline))*/ cex(Uint, Ull*,    Ull, Ull, Ull, Ull, Ushort);
 void /*__attribute__((always_inline))*/ ex4(Uint, Ull*,    Ull*, Uint, Ull*, Uint, Ull*, Uint, Uint, Ull*, Uint, Ull*);
 Ull    __attribute__((always_inline))   exm(Ull,  Uchar);
@@ -185,8 +185,8 @@ char forinit[2][EMAX_NCHIP][BUF_MAXLEN];
 char forinit_cidx[2]; /* CHIP?1:0 */
 
 struct cex {
-  /* aluop¤Î¤¦¤Ácmov¤À¤±¤Ï,cond=0/1¤Ë¤è¤Ã¤Æ¥½¡¼¥¹¤òÀÚÂØ¤¨¤ë */
-  /* aluop¤Î¤¦¤Ácmov°Ê³°¤ÈmemopÁ´Éô¤Ï,cond=1¤Î»þ¤Î¤ßÆ°ºî */
+  /* aluopï¿½Î¤ï¿½ï¿½ï¿½cmovï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,cond=0/1ï¿½Ë¤ï¿½Ã¤Æ¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¤ï¿½ï¿½ï¿½ */
+  /* aluopï¿½Î¤ï¿½ï¿½ï¿½cmovï¿½Ê³ï¿½ï¿½ï¿½memopï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,cond=1ï¿½Î»ï¿½ï¿½Î¤ï¿½Æ°ï¿½ï¿½ */
   char op        ; /* opcd */
   char bit0v     ; /* id.type */
   int  bit0h     ; /* imm/reg number hash for cond_bit0 */
@@ -196,7 +196,7 @@ struct cex {
   int  bit2h     ; /* imm/reg number hash for cond_bit2 */
   char bit3v     ; /* id.type */
   int  bit3h     ; /* imm/reg number hash for cond_bit3 */
-  Ull  table  :16; /* b3.b2.b1.b0¤ÎÁÈ¹ç¤» 1111,1110,1101,1100,....,0011,0010,0001,0000¤Î³Æ¡¹¤Ë0/1¤ò³ä¤êÅö¤Æ¤¿16bit¤ò»ØÄê */
+  Ull  table  :16; /* b3.b2.b1.b0ï¿½ï¿½ï¿½È¹ç¤» 1111,1110,1101,1100,....,0011,0010,0001,0000ï¿½Î³Æ¡ï¿½ï¿½ï¿½0/1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¤ï¿½16bitï¿½ï¿½ï¿½ï¿½ï¿½ */
   char cexdv     ; /* id.type */
   int  cexdh     ; /* destination hash for exrno */
 };
@@ -460,8 +460,8 @@ struct conf { /* final configuration info. for EMAX7-CGRA */
     Ull  cs1    :  4; /* 0:br0_0, 1:br0_1, ... 15:3_3 */
     Ull  cs2    :  4; /* 0:br0_0, 1:br0_1, ... 15:3_3 */
     Ull  cs3    :  4; /* 0:br0_0, 1:br0_1, ... 15:3_3 */
-    Ull  cex_tab: 16; /* c3.c2.c1.c0¤ÎÁÈ¹ç¤» (cop=NOP¤Î¾ì¹ç,ffff) */
-                      /* 1111,1110,1101,1100,....,0001,0000 ¤Î³Æ¡¹¤Ë0/1¤ò³ä¤êÅö¤Æ¤¿16bit¤ò»ØÄê */
+    Ull  cex_tab: 16; /* c3.c2.c1.c0ï¿½ï¿½ï¿½È¹ç¤» (cop=NOPï¿½Î¾ï¿½ï¿½,ffff) */
+                      /* 1111,1110,1101,1100,....,0001,0000 ï¿½Î³Æ¡ï¿½ï¿½ï¿½0/1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¤ï¿½16bitï¿½ï¿½ï¿½ï¿½ï¿½ */
     Ull  ea0op  :  5; /* mem_opcd */
     Ull  ea0bs  :  2; /* 0:ea0br, 1:ea0dr(ea0br+self-loop), 2:eabbrs, 3:ea0dr(eabbrs+self-loop) */
     Ull  ea0os  :  1; /* 0:ea0or, 1:eaobrs */
@@ -479,23 +479,23 @@ struct conf { /* final configuration info. for EMAX7-CGRA */
     Ull  ts1    :  4; /* 0:br0_0, 1:br0_1, ... 15:br3_3 */
     Ull  ts2    :  4; /* 0:br0_0, 1:br0_1, ... 15:br3_3 */
     Ull  ts3    :  4; /* 0:br0_0, 1:br0_1, ... 15:br3_3 */
-    Ull  trs0   :  2; /* 0:lmwd0, 1:exdr, 2:ts0 *//* 0:TR³°Éô½ñ¤­¹þ¤ßÍÑ, 1,2:EX/TS½ñ¤­¹þ¤ßÍÑ */
+    Ull  trs0   :  2; /* 0:lmwd0, 1:exdr, 2:ts0 *//* 0:TRï¿½ï¿½ï¿½ï¿½ï¿½ñ¤­¹ï¿½ï¿½ï¿½ï¿½ï¿½, 1,2:EX/TSï¿½ñ¤­¹ï¿½ï¿½ï¿½ï¿½ï¿½ */
     Ull  trs1   :  2; /* 0:lmwd1, 1:exdr, 2:ts1 */
     Ull  trs2   :  2; /* 0:lmwd2. 1:exdr, 2:ts2 */
     Ull  trs3   :  2; /* 0:lmwd3, 1:exdr, 2:ts3 */
-    Ull  mwsa   :  1; /* 0:lmwa,  1:ea0d        *//* 0:¾ï»þlmwd²ÄÇ½, 1,2:EXEC»þ°Ê³°¤Ï¶¯À©lmwd²ÄÇ½ */
-    Ull  mws0   :  2; /* 0:lmwd0, 1:exdr, 2:ts0 *//* 0:¾ï»þlmwd²ÄÇ½, 1,2:EXEC»þ°Ê³°¤Ï¶¯À©lmwd²ÄÇ½ */
+    Ull  mwsa   :  1; /* 0:lmwa,  1:ea0d        *//* 0:ï¿½ï¿½ï¿½lmwdï¿½ï¿½Ç½, 1,2:EXECï¿½ï¿½ï¿½Ê³ï¿½ï¿½Ï¶ï¿½ï¿½ï¿½lmwdï¿½ï¿½Ç½ */
+    Ull  mws0   :  2; /* 0:lmwd0, 1:exdr, 2:ts0 *//* 0:ï¿½ï¿½ï¿½lmwdï¿½ï¿½Ç½, 1,2:EXECï¿½ï¿½ï¿½Ê³ï¿½ï¿½Ï¶ï¿½ï¿½ï¿½lmwdï¿½ï¿½Ç½ */
     Ull  mws1   :  2; /* 0:lmwd1, 1:exdr, 2:ts1 */
     Ull  mws2   :  2; /* 0:lmwd2, 1:exdr, 2:ts2 */
     Ull  mws3   :  2; /* 0:lmwd3, 1:exdr, 2:ts3 */
     Ull  brs0   :  2; /* 0:off, 1:mr10, 2:tr0, 3:mr0  */
     Ull  brs1   :  2; /* 0:off, 1:mr11, 2:tr1, 3:mr1  */
-    Ull  brs2   :  2; /* 0:off, 1:mr12, 2:tr2, 3:exdr(brs3=3¤Î¾ì¹ç,ea0woofs¤ËÀÜÂ³) */
+    Ull  brs2   :  2; /* 0:off, 1:mr12, 2:tr2, 3:exdr(brs3=3ï¿½Î¾ï¿½ï¿½,ea0woofsï¿½ï¿½ï¿½ï¿½Â³) */
     Ull  brs3   :  2; /* 0:off, 1:mr13, 2:tr3  3:ea1woofs */
-    Ull  mapdist:  6; /* ÏÀÍýUNITËè¤Ë¤¢¤ë¤¬,ËÜÍè¤ÏÊªÍýUNIT¤Ë1¤Ä¤Ç¤è¤¤ */
-    Ull  lmm_mode: 2; /* ÏÀÍýLMMËè¤Ë¥»¥Ã¥È 0:Ìµ¸ú, 1:Ê¬³äÌµ, 2:2Ê¬³ä, 3:4Ê¬³ä */
-    Ull  lmm_axiw: 1; /* AXI->LMM writeÂÐ¾Ý(lmp/lmr/lmf/lmx¤Î¾ì¹ç1) */
-    Ull  lmm_axir: 1; /* AXI<-LMM read ÂÐ¾Ý(lmd/lmw/lmx    ¤Î¾ì¹ç1) */
+    Ull  mapdist:  6; /* ï¿½ï¿½ï¿½ï¿½UNITï¿½ï¿½Ë¤ï¿½ï¿½ë¤¬,ï¿½ï¿½ï¿½ï¿½ï¿½Êªï¿½ï¿½UNITï¿½ï¿½1ï¿½Ä¤Ç¤è¤¤ */
+    Ull  lmm_mode: 2; /* ï¿½ï¿½ï¿½ï¿½LMMï¿½ï¿½Ë¥ï¿½ï¿½Ã¥ï¿½ 0:Ìµï¿½ï¿½, 1:Ê¬ï¿½ï¿½Ìµ, 2:2Ê¬ï¿½ï¿½, 3:4Ê¬ï¿½ï¿½ */
+    Ull  lmm_axiw: 1; /* AXI->LMM writeï¿½Ð¾ï¿½(lmp/lmr/lmf/lmxï¿½Î¾ï¿½ï¿½1) */
+    Ull  lmm_axir: 1; /* AXI<-LMM read ï¿½Ð¾ï¿½(lmd/lmw/lmx    ï¿½Î¾ï¿½ï¿½1) */
     Ull  dmy20  : 13;
   } cdw2;
 
@@ -511,16 +511,16 @@ struct lmmi { /* final FSM configuration for EMAX7-CGRA */
   Ull f    : 1; /* load: 0:reuse LMM as possible, 1:force read */
                 /* store:0:none,                  1:force read */
   Ull p    : 1; /* 0:normal, 1:prefetch/drain */
-  Ull bcas : 4; /* column-bitmap for lmm broadcasting: slave¤Îrow_lmm_en¤Ë»ÈÍÑ */
-  Ull hcopy: 1; /* lmmi´ûload¸¡ºº(horizontal)¤Ë»ÈÍÑ. bcas_master¤Ï»ÈÍÑ¤·¤Ê¤¤ */
-  Ull vcopy: 1; /* lmmi´ûload¸¡ºº(vertical)¤Ë»ÈÍÑ */
+  Ull bcas : 4; /* column-bitmap for lmm broadcasting: slaveï¿½ï¿½row_lmm_enï¿½Ë»ï¿½ï¿½ï¿½ */
+  Ull hcopy: 1; /* lmmiï¿½ï¿½loadï¿½ï¿½ï¿½ï¿½(horizontal)ï¿½Ë»ï¿½ï¿½ï¿½. bcas_masterï¿½Ï»ï¿½ï¿½Ñ¤ï¿½ï¿½Ê¤ï¿½ */
+  Ull vcopy: 1; /* lmmiï¿½ï¿½loadï¿½ï¿½ï¿½ï¿½(vertical)ï¿½Ë»ï¿½ï¿½ï¿½ */
   Ull blk  : 2; /* 0:inf, 1:16, 2:32, 3:64 width*block=page(burst)_size(bytes) */
   Ull cidx : 1; /* 0:shared(default), 1:core by core(xxx[CHIP] is specified) (for "top" only) */
   Ull len  :19; /* words of current stream (words) */
   Ull ofs  :32; /* lmp/lmd offset for f=0,p=1,mapdist=0 */
   Ull top  :64; /* top of current stream / TCU function() */
 } lmmi[AMAP_DEPTH][EMAX_WIDTH]; /* 2dwords/unit costs 0.5cycle/unit: 4-parallel conf costs 0.5cycle/stage */
-int   lmmi_first_loc;           /* ºÇ½é¤Îlmr/lmf°ÌÃÖ¤òµ­²±.+mapdist°ÌÃÖ¤Î¿·µìtop¤òÈæ³Ó¤·°Û¤Ê¤ì¤ÐSCONÄä»ß */
+int   lmmi_first_loc;           /* ï¿½Ç½ï¿½ï¿½lmr/lmfï¿½ï¿½ï¿½Ö¤òµ­²ï¿½.+mapdistï¿½ï¿½ï¿½Ö¤Î¿ï¿½ï¿½ï¿½topï¿½ï¿½ï¿½ï¿½Ó¤ï¿½ï¿½Û¤Ê¤ï¿½ï¿½SCONï¿½ï¿½ï¿½ */
 Ull   lmmi_bitmap[EMAX_WIDTH];  /* based on lmmi[*][EMAX_WIDTH][2].v */
 Ull   range_bitmap[EMAX_WIDTH]; /* based on lmmi[*][EMAX_WIDTH][2].v */
 Uchar range_link[AMAP_DEPTH][EMAX_WIDTH]; /* valid depth# of vcopy!=0 */
