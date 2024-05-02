@@ -2,3 +2,4 @@ conv-c2d-*
 *.o
 lex.yy.c
 y.tab.c
+*.a
