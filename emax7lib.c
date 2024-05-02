@@ -3,317 +3,16 @@
 /*         Copyright (C) 2013- by NAIST */
 /*          Primary writer: Y.Nakashima */
 /*                 nakashim@is.naist.jp */
-
-/*******************************************************************************/
-/******************************** Defs *****************************************/
-/*******************************************************************************/
-
-enum { NANOS_ARM, NANOS_DRAIN, NANOS_CONF, NANOS_REGV, NANOS_RANGE, NANOS_LOAD, NANOS_EXEC, NANOS_TOTAL, NANOS_CLASS };
-
-typedef struct {
-  Uint  f : 23;
-  Uint  e :  8;
-  Uint  s :  1;
-} f32bit;
-
-typedef struct {
-  Uint  e :  6;
-  Uint  b :  1;
-  Uint  s :  1; /* lower 8bit */
-  Uint dm : 24; /* dummy for >gcc9 */
-} wu7bit;
-
-typedef struct {
-  Uint  e :  7;
-  Uint  s :  1; /* lower 8bit */
-  Uint dm : 24; /* dummy for >gcc9 */
-} wu8bit;
-
-typedef struct {
-  Uchar u[8];
-} u64bit;
-
-#define abs(a)    ((a)>  0 ? (a) :-(a)    )
-#define ad(a,b)   ((a)<(b)?(b)-(a):(a)-(b))
-#define ss(a,b)   ((a)<(b)?   0   :(a)-(b))
-
-/* dma_ctrl_space */
-/* https://www.xilinx.com/content/dam/xilinx/support/documents/ip_documentation/axi_dma/v7_1/pg021_axi_dma.pdf */
-struct dma_ctrl {
-  /*   Register Name		   Address	Width	Type	Reset Value	Description */
-  Uint MM2S_DMACR;             /* 0x00000000¡ú  32      mixed   0x00010000      DMA Control register */
-	/*   Field Name    Bits  Type Default Val  Description            */
-	/*   Run/Stop         0  rw   0x0   ¡ú	   0:stop-DMA,1:start-DMA */
-	/*   Reserved 	      1  ro   0x1	   Reserved for future use */
-        /*   Reset            2  rw   0x0          0:normal, 1:reset in progress */
-        /*   Keyhole          3  rw   0x0          0:normal, 1:non-incrementing addr */
-        /*   Cycle BD En      4  rw   0x0          0:normal, 1:Cycle Buffer Descriptor */
-        /*   Reserved      11-5  ro   0x0          Reserved for future use */
-        /*   IOC_IrqEn       12  rw   0x0          0:IOC   Intr. disabled, 1:IOC   Intr. enabled */
-        /*   Dly_IrqEn       13  rw   0x0          0:Delay Intr. disabled, 1:Delay Intr. enabled */
-        /*   Err_IrqEn       14  rw   0x0          0:Error Intr. disabled, 1:Error Intr. enabled */
-        /*   Reserved        15  ro   0x0          Reserved for future use */
-        /*   IRQThreshold 23-16  rw   0x1          Intr. threshold */
-        /*   IRQThreshold 31-24  rw   0x0          Intr. delay time out */
-
-  Uint MM2S_DMASR;             /* 0x00000004¡ú  32      mixed   0x00010000      DMA Status register */
-	/*   Field Name    Bits  Type Default Val  Description            */
-	/*   Halted           0  ro   0x1   ¡ú     0:DMA channel running, 1:DMA channel halted */
-	/*   Idle             1  ro   0x0   ¡ú     0:not Idle, 1:Idle */
-        /*   Reserved         2  ro   0x0          Reserved for future use */
-        /*   SGIncld          3  ro   C_INCLUDE_SG 0:SG N.A, 1:SG enabled */
-        /*   DMAIntErr        4  ro   0x0   ¡ú     0:no DMA internal error, 1:DMA internal error */
-        /*   DMASlvErr        5  ro   0x0   ¡ú     0:no DMA slave errors,   1:DMA slave error */
-        /*   DMADecErr        6  ro   0x0   ¡ú     0:no DMA decode errors,  1:DMA decode error (invalid address) */
-        /*   Reserved         7  ro   0x0          Reserved for future use */
-        /*   SGIntErr         8  ro   0x0          0:no SG internal error,  1:SG internal error */
-        /*   SGSlvErr         9  ro   0x0          0:no SG slave errors,    1:SG slave error */
-        /*   SGDecErr        10  ro   0x0          0:no SG decode errors,   1:SG decode error (invalid address) */
-        /*   Reserved        11  ro   0x0          Reserved for future use */
-        /*   IOC_Irq         12  rwc  0x0          0:no IOC intr.   1:IOC intr. */
-        /*   Dly_Irq         13  rwc  0x0          0:no Delay intr. 1:Delay intr. */
-        /*   Err_Irq         14  rwc  0x0          0:no Err intr.   1:Err intr. */
-        /*   Reserved        15  ro   0x0          Reserved for future use */
-        /*   IRQThreshold 23-16  ro   0x1          Intr. threshold stat */
-        /*   IRQThreshold 31-24  ro   0x0          Intr. delay time out stat */
-
-  Uint reserved0[4];           /* 08h - 14h Reserved N/A */
-  Uint MM2S_SA;                /* 0x00000018    32      rw      0x00000000      Source Address. Lower 32 bits of address.*/
-  Uint MM2S_SA_MSB;            /* 0x0000001c    32      rw      0x00000000      Source Address. Upper 32 bits of address.*/
-  Uint reserved1[2];           /* 20h - 24h Reserved N/A */
-  Uint MM2S_LENGTH;            /* 0x00000028    32      rw      0x00000000      Transfer Length (Bytes) */
-  Uint reserved2[1];           /* 2ch       Reserved N/A */
-  Uint S2MM_DMACR;             /* 0x00000030¡ú  32      mixed   0x00010000      DMA Control register */
-  Uint S2MM_DMASR;             /* 0x00000034¡ú  32      mixed   0x00010000      DMA Status register */
-  Uint reserves3[4];           /* 38h - 44h Reserved N/A */
-  Uint S2MM_DA;                /* 0x00000048    32      rw      0x00000000      Destination Address. Lower 32 bit address.*/
-  Uint S2MM_DA_MSB;            /* 0x0000004c    32      rw      0x00000000      Destination Address. Upper 32 bit address.*/
-  Uint reserved4[2];           /* 50h - 54h Reserved N/A */
-  Uint S2MM_LENGTH;            /* 0x00000058    32      rw      0x00000000      Buffer Length (Bytes) */
-
-  /* Simple Mode */
-  /* 0. MM2S_DMASR.Halted=0,Idle=1¤ò³ÎÇ§ */
-  /* 1. Start the MM2S channel (MM2S_DMACR.RS = 1).*/
-  /* 2. Write a valid source address to MM2S_SA+MM2S_SA_MSB register.*/
-  /* 3. Write the bytes to MM2S_LENGTH register. A value of zero has no effect.*/
-
-  /* 0. S2MM_DMASR.Halted=0,Idle=1¤ò³ÎÇ§ */
-  /* 1. Start the S2MM channel (S2MM_DMACR.RS = 1).*/
-  /* 2. Write a valid destination address to S2MM_DA+S2MM_DA_MSB register.*/
-  /* 3. Write the bytes to S2MM_LENGTH register. A value of zero has no effect.*/
-
-  /* 4. MM2S_DMASR.bit4-6!=0¤Ê¤é¥¨¥é¡¼ */
-  /* 4. S2MM_DMASR.bit4-6!=0¤Ê¤é¥¨¥é¡¼ */
-  /* 4. MM2S_DMASR.IOC_Irq¤¬1¤Ë¤Ê¤ë¤Þ¤ÇÂÔµ¡,1¤ò½ñ¤¤¤Æreset */
-  /* 4. S2MM_DMASR.IOC_Irq¤¬1¤Ë¤Ê¤ë¤Þ¤ÇÂÔµ¡,1¤ò½ñ¤¤¤Æreset */
-};
-
-/* reg_ctrl */
-enum { EXRING_IDLE, EXRING_BUSY};
-enum { LMRING_IDLE, LMRING_BUSY};
-enum { CMD_NOP, CMD_RESET, CMD_SCON, CMD_EXEC};
-struct reg_ctrl {
-  struct i0 {
-    Ull  stat; /* +0000 bit15-12:LMM_SIZE, bit11-8:EMAX_DEPTH, bit7-4:LMRING, bit3-0:EXRING */
-    Uint mcid; /* +0008 maximum chip-ID of IMAX (<EMAX_NCHIP) to be chained (activated) */
-    Uint dmy0;
-    Uint cmd;  /* +0010 host writes Ull cmd then chip# is propagated to succesors */
-  /*Uint cid;*//* +0012 chip# ( set by write to cmd ) */
-    Uint dmy1;
-    Ull  dmy2;
-    Ull  adtr; /* +0020 */
-    Ull  dmy3;
-    Ull  csel; /* +0030 */
-    Ull  dmrp; /* +0038 DMAREAD-PREF */
-    Ull  dmy4[1016];
-    struct conf                    conf[AMAP_DEPTH][EMAX_WIDTH];  /* +2000-3fff */
-    struct {Ull  br[UNIT_WIDTH];}  breg[AMAP_DEPTH][EMAX_WIDTH];  /* +4000-5fff *//* unit[cid][EMAX_DEPTH].breg[x][EMAX_WIDTH].br[UNIT_WIDTH] is used */
-    struct {Uint ea0b ; /* ea0 base   (for avoiding ld-mask-st, should be extended to 32bits (lower 18bit is available)) */
-      /*Ull  dmy0 :14;*/
-        Uint ea0o ; /* ea0 offset (for avoiding ld-mask-st, should be extended to 32bits (lower 18bit is available)) */
-      /*Ull  dmy1 :14;*/
-        Uint ea1b ; /* ea1 base   (for avoiding ld-mask-st, should be extended to 32bits (lower 18bit is available)) */
-      /*Ull  dmy2 :14;*/
-        Uint ea1o ; /* ea1 offset (for avoiding ld-mask-st, should be extended to 32bits (lower 18bit is available)) */
-      /*Ull  dmy3 :14;*/
-        Uint top  ; /* LMM-top virtual-address */
-      /*Ull  dmy4 : 1;*/
-        Uint bot  ; /* LMM-bot virtual-address */
-      /*Ull  dmy5 : 1;*/
-        Ull  dmy6 ;}           addr[AMAP_DEPTH][EMAX_WIDTH];  /* +6000-7fff */
-    struct {Ull  reg[UNIT_WIDTH];} lddmrw[AMAP_DEPTH][EMAX_WIDTH];/* +8000-9fff *//* lddmq/trans-r,lddmq-w */
-    Ull dmy5[3072]; /* +a000-ffff */
-  } i[EMAX_NCHIP]; /* 0000-ffff */
-};
-
-/* emax7 host control */
-enum { STATUS_IDLE, STATUS_CONF, STATUS_SCON, STATUS_REGV, STATUS_RANGE, STATUS_DRAIN, STATUS_LOAD, STATUS_START, STATUS_EXEC, STATUS_TERM };
-
-pthread_mutex_t axi_dma_mutex;
-
-struct emax7 { /* host status of EMAX7 */
-  volatile Ull   dma_ctrl;  /* struct dma_ctrl *dma_ctrl  DMA control */
-  volatile Ull   reg_ctrl;  /* struct reg_ctrl *reg_ctrl  REG control */
-
-  Ull   status            : 4;
-  Ull   csel_save         : 2;
-  Ull   last_conf            ; /* for insn_reuse */
-  Ull   lmmic             : 1; /* 0:lmm[0] is curent, 1:lmm[1] is current */
-  Ull   lmmio             : 1; /* 0:lmm[0] is prev,   1:lmm[1] is prev    */
-  Ull   mapdist           : 6; /* specified mapdist */
-  Ull   lastdist          : 6; /* lastdist for DYNAMIC_SCON */
-  struct lmmi lmmi[EMAX_NCHIP][AMAP_DEPTH][EMAX_WIDTH][2]; /* lmmi for host (len/ofs/top are resolved) */
-  Ull   lmmi_bitmap[EMAX_WIDTH];      /* based on lmmi[*][EMAX_WIDTH][2].v */
-  Uchar lmmd[AMAP_DEPTH][EMAX_WIDTH]; /* chip#7,6,..,0:clean, 1:dirty, exec¸åstore²Õ½ê¤Ë1, drainÄ¾¸å0 */
-
-#ifndef IGNORE_LMMI_BLKGATHER
-  Ull   plist                ; /* pointer-list */
-  Ull   blkcount          : 7; /* active block number */
-  Ull   blksize           : 9; /* 1:64 2:128 3:256 dwords */
-  Ull   lmmblktop            ; /* LMM-addr     for LDRQ(blk>0) */
-  Ull   lmmblklen            ; /* total dwords for LDRQ(blk>0) */
-#endif
-
-  Ull   rw                    ; /* 0:load(mem->lmm), 1:store(lmm->mem)      */
-  Ull   ddraddr               ; /* ddr-address                              */
-  Ull   lmmaddr               ; /* lmm-address                              */
-  Ull   dmalen                ; /* dma-length                               */
-  Ull   sigwait               ; /* 0:no macropipe+sigwait, 1:macropipe+sigwait */
-  int   *sigstat              ; /* ->th_args.stat (0:idle, 1:run, 2:wait)   */
-  sigset_t *sigset            ; /* for sigmask/sigwait                      */
-
-#ifndef IGNORE_LDDMQ_HANDSHAKE
-  Ull   fsm_busy          : 1; /* for LDDMQ and TR */
-  Ull   lmwd_valid        : 1; /* for LDDMQ */
-  Ull   tcureg_valid      : 1; /* fsm->ARM   0 -> 1 -> 1 -> 0 -> 0 -> 0                              */
-  Ull   tcureg_ready      : 1; /* fsm<-ARM   0 -> 0 -> 1 -> 0 -> 0 -> 0                              */
-  Ull   tcureg_last       : 1; /* fsm->ARM   0 -> 0 -> 0 -> 1 -> 1 -> 0                              */
-  Ull   tcureg_term       : 1; /* fsm<-ARM   0 -> 0 -> 0 -> 0 -> 1 -> 0                              */
-  Ull   tcureg[UNIT_WIDTH]   ; /* tcu-data        of tcu                       v                     */
-                               /* from ARM:  svc 0x1010 ... tcureg_valid->x0                         */
-                               /* from ARM:  svc 0x1011 ... 1->tcureg_ready                          */
-                               /* from ARM:  svc 0x1012 ... tcureg_last->x0                          */
-                               /* from ARM:  svc 0x1013 ... 1->tcureg_term                           */
-                               /* from ARM:  svc 0x1014 ... tcureg[3:0]->x3,2,1,0                    */
-#endif
-} emax7[EMAX_NLANE];
-
-volatile struct emax_info {
-  Ull  dma_phys;     // kern-phys
-  Ull  dma_vadr;     // not used
-  Ull  dma_mmap;     // user-virt Contiguous 64K register space
-  Ull  reg_phys;     // kern-phys
-  Ull  reg_vadr;     // not used
-  Ull  reg_mmap;     // user-virt Contiguous 4GB space including LMM space
-  Ull  lmm_phys;     // kern-phys
-  Ull  lmm_vadr;     // not used
-  Ull  lmm_mmap;     // user-virt Contiguous 2GB space for LMM space
-  Ull  ddr_phys;     // kern-phys
-  Ull  ddr_vadr;     // not used
-  Ull  ddr_mmap;     // user-virt Contiguous 2GB space in DDR-high-2GB space
-  int  driver_use_1;
-  int  driver_use_2;
-} emax_info[EMAX_NLANE];
-
-/*  ... for ARMSIML only */
-#define DMA_BASE2_PHYS	 0x50000000
-#define REG_BASE2_PHYS	 0x50100000
-#define REG_CONF_OFFS    0x00002000
-#define REG_BREG_OFFS    0x00004000
-#define REG_ADDR_OFFS    0x00006000
-#define REG_LDDM_OFFS    0x00008000
-#define REG_AREA_MASK    0x0000ffff
-#define LMM_BASE2_PHYS 	 0x60000000
-#define MEM_VALID_ADDR	 0xafffffff
-
+#include "emax7lib.h"
 #ifndef NO_EMAX7LIB_BODY
-
 #ifdef ARMZYNQ
 /*******************************************************************************/
 /******************************** ZYNQ-COMMON **********************************/
 /*******************************************************************************/
-
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <dirent.h>
-#include <errno.h>
-#include <linux/ioctl.h>
-
-#define DMA_BASE_PHYS	 0x00000000a4000000LL
-#define DMA_BASE_PHYSOFS 0x0000000000010000LL
-#define DMA_MMAP_SIZE	 0x0000000000010000LL
-/*  ... 64KB  */
-#define REG_BASE_PHYS	 0x0000020800000000LL
-#define REG_BASE_PHYSOFS 0x0000000800000000LL
-#define REG_MMAP_SIZE	 0x0000000200000000LL
-/*  ... 8GB REGS(2G)+LMM(4G) */
-#define LMM_BASE_PHYS	 0x0000020880000000LL
-#define LMM_BASE_PHYSOFS 0x0000000800000000LL
-/*  ... 4GB   */
-#define DDR_BASE_PHYS	 0x0000050000000000LL
-#define DDR_MMAP_SIZE	 0x0000000100000000LL
-/*  ... 4GB   */
-
-#define EMAX_IOC_MAGIC  60
-/* Please use a different 8-bit number in your code */
-#define EMAX_IORESET			_IO( EMAX_IOC_MAGIC, 0)
-#define EMAX_GET_ACPMEM			_IOWR(EMAX_IOC_MAGIC,  1, unsigned long)
-#define EMAX_IOC_MAXNR 2
-
-static int filter(struct dirent *dir)
-{
-  return dir->d_name[0] == '.' ? 0 : 1;
-}
-
-static void trim(char *d_name)
-{
-  char *p = strchr(d_name, '\n');
-  if (p != NULL) *p = '\0';
-}
-
-static int is_target_dev(char *d_name, char *target)
-{
-  char path[32];
-  char name[32];
-  FILE *fp;
-  sprintf(path, "/sys/class/uio/%s/name", d_name);
-  if ((fp = fopen(path, "r")) == NULL) return 0;
-  if (fgets(name, sizeof(name), fp) == NULL) {
-    fclose(fp);
-    return 0;
-  }
-  fclose(fp);
-  if (strcmp(name, target) != 0) return 0;
-  return 1;
-}
-
-static int get_reg_size(char *d_name)
-{
-  char path[32];
-  char size[32];
-  FILE *fp;
-  sprintf(path, "/sys/class/uio/%s/maps/map0/size", d_name);
-  if ((fp = fopen(path, "r")) == NULL) return 0;
-  if (fgets(size, sizeof(size), fp) == NULL) {
-    fclose(fp);
-    return 0;
-  }
-  fclose(fp);
-  return strtoull(size, NULL, 16);
-}
-
 emax7_open(int NLANE)
-/* HPM¤ò·ÐÍ³¤¹¤ëÀ©¸æ¥ì¥¸¥¹¥¿¤Ë¥ê¥»¥Ã¥ÈÁ÷½Ð */
-/* HPP¤ò·ÐÍ³¤¹¤ë²èÁü¥á¥â¥ê¤ò²¾ÁÛ¶õ´Ö¤Ë¼ÌÁü */
-/* ACP¤ò·ÐÍ³¤¹¤ëconf/lmmi/regv¶õ´Ö¤ò²¾ÁÛ¶õ´Ö¤Ë¼ÌÁü */
+/* HPMï¿½ï¿½ï¿½Í³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ì¥¸ï¿½ï¿½ï¿½ï¿½ï¿½Ë¥ê¥»ï¿½Ã¥ï¿½ï¿½ï¿½ï¿½ï¿½ */
+/* HPPï¿½ï¿½ï¿½Í³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Û¶ï¿½ï¿½Ö¤Ë¼ï¿½ï¿½ï¿½ */
+/* ACPï¿½ï¿½ï¿½Í³ï¿½ï¿½ï¿½ï¿½conf/lmmi/regvï¿½ï¿½ï¿½Ö¤ï¿½ï¿½Û¶ï¿½ï¿½Ö¤Ë¼ï¿½ï¿½ï¿½ */
 {
   struct dirent **namelist;
   int  num_dirs, dir, uiolen;
@@ -487,10 +186,6 @@ emax7_open(int NLANE)
 /*******************************************************************************/
 /******************************** Timer ****************************************/
 /*******************************************************************************/
-
-Ull nanosec_sav[EMAX_NLANE];
-Ull nanosec[EMAX_NLANE][NANOS_CLASS];
-
 sleep_nanosec(int nano)
 {
 #if defined(ARMSIML)
@@ -564,7 +259,6 @@ show_nanosec(int LANE)
 /*******************************************************************************/
 /******************************** DMA-START ************************************/
 /*******************************************************************************/
-
 #if !defined(EMAXNC)
 emax7_check_lmmi_and_dma(int LANE, int mode, int phase, int lastdist, int c, int i, int j)
 {
@@ -573,14 +267,14 @@ emax7_check_lmmi_and_dma(int LANE, int mode, int phase, int lastdist, int c, int
   /* lastdist */
   /* i      row              */
   /* j      col              */
-  /* lmmi¹¹¿·¸å¤Ë¸Æ¤Ð¤ì¤ë. lmd´ØÏ¢¤Ïlmd°ÌÃÖ¤ò´ð½à¤Ëlmr/lmx¤ò¸¡ºº(+lastdist¤ÎÍýÍ³) */
-  /*                   ¼¡²ólmd    °ÌÃÖ¤Ï,"lmmi[i         ][lmmic]" */
-  /* lastdist=>0¤Î¾ì¹ç,Á°²ólmw/lmx°ÌÃÖ¤Ï,"lmmi[i+lastdist][lmmio]" */
-  /* ½¾Íè,lmd¤Î¾ì¹ç,SCON¤·¤Æ¤â¤·¤Ê¤¯¤Æ¤âEXEC¤ÈÆ±»þ¤ËDRAIN (lastdist=0¤Î¾ì¹ç¤Ïlmm¤ÎÈ¾Ê¬¤òlmd/lmw¤Ë»È¤¤Ê¬¤±¤ëÁ°Äó) */
-  /* lastdist=0¤Î¾ì¹ç,DYNAMIC_SCON¤ÏÌµ°ÕÌ£¤Ê¤Î¤Ç½¾ÍèÄÌ¤ê */
-  /* lastdist>0¤Î¾ì¹ç,DYNAMIC_SCON¤«¤ÄSCONÍ­¤ê¤Ï½¾ÍèÄÌ¤ê */
-  /*                 SCONÌµ»ë¤Î¾ì¹ç,¤½¤â¤½¤âlmd°ÌÃÖ¤¬¹ç¤ï¤Ê¤¤¤Î¤Çlmd»ØÄê¤ÏÌµ»ë¤¹¤Ù¤­.µìlmw/lmx¤ÎEXECÁ°DRAIN¤¬É¬Í× */
-  /*                 ¡ú¡ú¡ú¤¿¤À¤·,lmd¤ò»È¤¦¥±¡¼¥¹¤Ç¤ÏDYNAMIC_SCON¤ò»È¤ï¤Ê¤¤¤Ï¤º¤Ê¤Î¤Ç,ÅöÌÌÂÐ±þ¤·¤Ê¤¤ */
+  /* lmmiï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë¸Æ¤Ð¤ï¿½ï¿½. lmdï¿½ï¿½Ï¢ï¿½ï¿½lmdï¿½ï¿½ï¿½Ö¤ï¿½ï¿½ï¿½ï¿½lmr/lmxï¿½ò¸¡ºï¿½(+lastdistï¿½ï¿½ï¿½ï¿½Í³) */
+  /*                   ï¿½ï¿½ï¿½ï¿½lmd    ï¿½ï¿½ï¿½Ö¤ï¿½,"lmmi[i         ][lmmic]" */
+  /* lastdist=>0ï¿½Î¾ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½lmw/lmxï¿½ï¿½ï¿½Ö¤ï¿½,"lmmi[i+lastdist][lmmio]" */
+  /* ï¿½ï¿½ï¿½ï¿½,lmdï¿½Î¾ï¿½ï¿½,SCONï¿½ï¿½ï¿½Æ¤â¤·ï¿½Ê¤ï¿½ï¿½Æ¤ï¿½EXECï¿½ï¿½Æ±ï¿½ï¿½ï¿½ï¿½DRAIN (lastdist=0ï¿½Î¾ï¿½ï¿½ï¿½lmmï¿½ï¿½È¾Ê¬ï¿½ï¿½lmd/lmwï¿½Ë»È¤ï¿½Ê¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½) */
+  /* lastdist=0ï¿½Î¾ï¿½ï¿½,DYNAMIC_SCONï¿½ï¿½Ìµï¿½ï¿½Ì£ï¿½Ê¤Î¤Ç½ï¿½ï¿½ï¿½ï¿½Ì¤ï¿½ */
+  /* lastdist>0ï¿½Î¾ï¿½ï¿½,DYNAMIC_SCONï¿½ï¿½ï¿½ï¿½SCONÍ­ï¿½ï¿½Ï½ï¿½ï¿½ï¿½ï¿½Ì¤ï¿½ */
+  /*                 SCONÌµï¿½ï¿½Î¾ï¿½ï¿½,ï¿½ï¿½ï¿½â¤½ï¿½ï¿½lmdï¿½ï¿½ï¿½Ö¤ï¿½ï¿½ï¿½ï¿½Ê¤ï¿½ï¿½Î¤ï¿½lmdï¿½ï¿½ï¿½ï¿½ï¿½Ìµï¿½ë¤¹ï¿½Ù¤ï¿½.ï¿½ï¿½lmw/lmxï¿½ï¿½EXECï¿½ï¿½DRAINï¿½ï¿½É¬ï¿½ï¿½ */
+  /*                 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,lmdï¿½ï¿½È¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¤ï¿½DYNAMIC_SCONï¿½ï¿½È¤ï¿½Ê¤ï¿½ï¿½Ï¤ï¿½ï¿½Ê¤Î¤ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½ï¿½Ê¤ï¿½ */
   int k, m = (i+lastdist)%EMAX_DEPTH; /* lmmo-index */
   int lmmc_topz;
   int lmmc_ofsz;
@@ -607,12 +301,12 @@ emax7_check_lmmi_and_dma(int LANE, int mode, int phase, int lastdist, int c, int
     lmmc_topz = (lmmicp->top == 0);
     lmmc_ofsz = (lmmicp->ofs == 0);
     lmmo_stat = (lmmiop->v<<3)|(lmmiop->rw<<2)|(lmmiop->f<<1)|(lmmiop->p); /* v|rw|f|p */
-    lmmc_stat =((lmmicp->v & ~lmmicp->hcopy & ~lmmicp->vcopy & ((lmmicp->f&lmmicp->p) | !lmmc_topz))<<3)|(lmmicp->rw<<2)|(lmmicp->f<<1)|(lmmicp->p); /* v= ~copy & (OP_LDDMQ/OP_TR ¤Þ¤¿¤Ï ptop!=NULL) */
+    lmmc_stat =((lmmicp->v & ~lmmicp->hcopy & ~lmmicp->vcopy & ((lmmicp->f&lmmicp->p) | !lmmc_topz))<<3)|(lmmicp->rw<<2)|(lmmicp->f<<1)|(lmmicp->p); /* v= ~copy & (OP_LDDMQ/OP_TR ï¿½Þ¤ï¿½ï¿½ï¿½ ptop!=NULL) */
     lmm_ready = (lmmiop->v && lmmiop->blk == lmmicp->blk && lmmiop->len == lmmicp->len && lmmiop->top == lmmicp->top);
     lmm_readz = (lmmiop->v && lmmiop->blk == lmmicp->blk && lmmiop->len == lmmicp->len &&(lmmiop->top+(Sll)(int)lmmiop->ofs) == lmmicp->top);
   }
 
-  /* lmx: bitmap¤ò¸¡ºº¤·,¸½addr+len¤È¼¡addr¤òÈæ¤Ù,Ï¢Â³¤Ê¤éÏ¢·ë¤·¤¿¼¡addr/len¤òÊÝÂ¸.ºÇ½ª¤Þ¤¿¤ÏÉÔÏ¢Â³¤Ê¤éÊÝÂ¸addr/len¤Þ¤¿¤Ï¸½addr/len¤ò»È¤Ã¤ÆDMA */
+  /* lmx: bitmapï¿½ò¸¡ºï¿½ï¿½ï¿½,ï¿½ï¿½addr+lenï¿½È¼ï¿½addrï¿½ï¿½ï¿½ï¿½ï¿½,Ï¢Â³ï¿½Ê¤ï¿½Ï¢ï¿½ë¤·ï¿½ï¿½ï¿½ï¿½addr/lenï¿½ï¿½ï¿½ï¿½Â¸.ï¿½Ç½ï¿½ï¿½Þ¤ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Â³ï¿½Ê¤ï¿½ï¿½ï¿½Â¸addr/lenï¿½Þ¤ï¿½ï¿½Ï¸ï¿½addr/lenï¿½ï¿½È¤Ã¤ï¿½DMA */
 
 #if 0
 if (mode==0) {
@@ -623,40 +317,40 @@ printf("DR..DMA phase=%x i=%d j=%d dirty=%x\n", phase, i, j, emax6.lmmd[i][j]);
 }
 #endif
 
-  /*     LD/f=0 ¢ÍA   | LD/f=0 reuse A | LD/f=0 reuse A | LD/f=0     ¢ÍB | LD/f=0 reuse B | LD/f=0 reuse B */
-  /*     LD/f=0 ¢ÍA   | LD/f=0 reuse A | LD/f=1     ¢ÍA | LD/f=0     ¢ÍB | LD/f=0 reuse B | LD/f=1     ¢ÍB */
-  /*     ST/f=0   A   | ST/f=0 ¡ßDR  A | ST/f=0 ¡ßDR  A | ST/f=0 A¢Í   B | ST/f=0 ¡ßDR  B | ST/f=0 ¡ßDR  B */
-  /*µìÀµ ST/f=1 ¢ÍA   | ST/f=1 ¡ßDR  A | ST/f=1 ¡ßDR  A | ST/f=1 A¢Í ¢ÍB | ST/f=1 ¡ßDR  B | ST/f=1 ¡ßDR  B */
-  /*¿·¸í ST/f=1 ¢ÍA   | ST/f=1 ¡ßDR¢ÍA | ST/f=0 ¡ßDR  A | ST/f=1 A¢Í ¢ÍB | ST/f=1 ¡ßDR¢ÍB | ST/f=0 ¡ßDR  B */
-  /*                  |¡úst¤»¤ºA½é´ü²½ |                |                |¡úst¤»¤ºB½é´ü²½ |                */
-  /*¿·Àµ ST/f=1 ¢ÍA   | ST/f=0 ¡ßDR  A | ST/f=0 ¡ßDR  A | ST/f=1 A¢Í ¢ÍB | ST/f=0 ¡ßDR  B | ST/f=0 ¡ßDR  B */
-  /*¿·Àµ ST/f=1 ¢ÍA   |           A!=B¤Î¾ì¹ç¼«Æ°drainÍ­ | ST/f=1 A¢Í ¢ÍB                                   */
-  /*¿·¸í ST/f=1 ¢ÍA   |           A==B¤Î¾ì¹ç¼«Æ°drainÌµ | ST/f=1 ¡ßDR¢ÍB                                   */
-  /*                  |                                 |¡úst¤»¤ºB½é´ü²½                                   */
-  /*¿·Àµ ST/f=1 ¢ÍA   |           A==B¤Î¾ì¹ç¼êÆ°drain A | ST/f=1     ¢ÍB                                   */
+  /*     LD/f=0 ï¿½ï¿½A   | LD/f=0 reuse A | LD/f=0 reuse A | LD/f=0     ï¿½ï¿½B | LD/f=0 reuse B | LD/f=0 reuse B */
+  /*     LD/f=0 ï¿½ï¿½A   | LD/f=0 reuse A | LD/f=1     ï¿½ï¿½A | LD/f=0     ï¿½ï¿½B | LD/f=0 reuse B | LD/f=1     ï¿½ï¿½B */
+  /*     ST/f=0   A   | ST/f=0 ï¿½ï¿½DR  A | ST/f=0 ï¿½ï¿½DR  A | ST/f=0 Aï¿½ï¿½   B | ST/f=0 ï¿½ï¿½DR  B | ST/f=0 ï¿½ï¿½DR  B */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   | ST/f=1 ï¿½ï¿½DR  A | ST/f=1 ï¿½ï¿½DR  A | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½B | ST/f=1 ï¿½ï¿½DR  B | ST/f=1 ï¿½ï¿½DR  B */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   | ST/f=1 ï¿½ï¿½DRï¿½ï¿½A | ST/f=0 ï¿½ï¿½DR  A | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½B | ST/f=1 ï¿½ï¿½DRï¿½ï¿½B | ST/f=0 ï¿½ï¿½DR  B */
+  /*                  |ï¿½ï¿½stï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½ |                |                |ï¿½ï¿½stï¿½ï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½ï¿½ï¿½ |                */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   | ST/f=0 ï¿½ï¿½DR  A | ST/f=0 ï¿½ï¿½DR  A | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½B | ST/f=0 ï¿½ï¿½DR  B | ST/f=0 ï¿½ï¿½DR  B */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   |           A!=Bï¿½Î¾ï¿½ç¼«Æ°drainÍ­ | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½B                                   */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   |           A==Bï¿½Î¾ï¿½ç¼«Æ°drainÌµ | ST/f=1 ï¿½ï¿½DRï¿½ï¿½B                                   */
+  /*                  |                                 |ï¿½ï¿½stï¿½ï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½ï¿½ï¿½                                   */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   |           A==Bï¿½Î¾ï¿½ï¿½ï¿½Æ°drain A | ST/f=1     ï¿½ï¿½B                                   */
 
-  /*²þÀµ ST/f=1 ¢ÍA   | ST/f=1 A¢Í ¢ÍA | ST/f=0 ¡ßDR  A | ST/f=1 A¢Í ¢ÍB | ST/f=1 B¢Í ¢ÍB | ST/f=0 ¡ßDR  B */
-  /*²þÀµ ST/f=1 ¢ÍA   | ST/f=0 ¡ßDR  A | ST/f=0 ¡ßDR  A | ST/f=1 A¢Í ¢ÍB | ST/f=0 ¡ßDR  B | ST/f=0 ¡ßDR  B */
-  /*²þÀµ ST/f=1 ¢ÍA   |           A!=B¤Î¾ì¹ç¼«Æ°drainÍ­ | ST/f=1 A¢Í ¢ÍB                                   */
-  /*²þÀµ ST/f=1 ¢ÍA   |           A==B¤Î¾ì¹ç¼«Æ°drainÍ­ | ST/f=1 A¢Í ¢ÍB                                   */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½A | ST/f=0 ï¿½ï¿½DR  A | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½B | ST/f=1 Bï¿½ï¿½ ï¿½ï¿½B | ST/f=0 ï¿½ï¿½DR  B */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   | ST/f=0 ï¿½ï¿½DR  A | ST/f=0 ï¿½ï¿½DR  A | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½B | ST/f=0 ï¿½ï¿½DR  B | ST/f=0 ï¿½ï¿½DR  B */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   |           A!=Bï¿½Î¾ï¿½ç¼«Æ°drainÍ­ | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½B                                   */
+  /*ï¿½ï¿½ï¿½ï¿½ ST/f=1 ï¿½ï¿½A   |           A==Bï¿½Î¾ï¿½ç¼«Æ°drainÍ­ | ST/f=1 Aï¿½ï¿½ ï¿½ï¿½B                                   */
 
   if      (phase == 1) { /* drain */
-    if      (mode==0 && lmmo_stat==12 && !lmm_ready && lmmc_stat!=13 && (emax7[LANE].lmmd[m][j]&1<<c)) { mark=1;emax7[LANE].lmmd[m][j]&=~(1<<c);dmadr=lmmiop->top;dmlen=lmmiop->len;dmnxt=lmmiop1->top;dmrw=1;}/* ¡ü2 lmw&!lmd drain */
-    else if (mode==0 && lmmo_stat==14 /*&& !lmm_ready*/              && (emax7[LANE].lmmd[m][j]&1<<c)) { mark=1;emax7[LANE].lmmd[m][j]&=~(1<<c);dmadr=lmmiop->top;dmlen=lmmiop->len;dmnxt=lmmiop1->top;dmrw=1;}/* ¡ü4 lmx      drain */
-    else if (mode==1 &&                                                 (emax7[LANE].lmmd[i][j]&1<<c)) { mark=1;emax7[LANE].lmmd[i][j]&=~(1<<c);dmadr=lmmicp->top;dmlen=lmmicp->len;dmnxt=lmmicp1->top;dmrw=1;}/* ¡ù drain_dirty_lmm */
+    if      (mode==0 && lmmo_stat==12 && !lmm_ready && lmmc_stat!=13 && (emax7[LANE].lmmd[m][j]&1<<c)) { mark=1;emax7[LANE].lmmd[m][j]&=~(1<<c);dmadr=lmmiop->top;dmlen=lmmiop->len;dmnxt=lmmiop1->top;dmrw=1;}/* ï¿½ï¿½2 lmw&!lmd drain */
+    else if (mode==0 && lmmo_stat==14 /*&& !lmm_ready*/              && (emax7[LANE].lmmd[m][j]&1<<c)) { mark=1;emax7[LANE].lmmd[m][j]&=~(1<<c);dmadr=lmmiop->top;dmlen=lmmiop->len;dmnxt=lmmiop1->top;dmrw=1;}/* ï¿½ï¿½4 lmx      drain */
+    else if (mode==1 &&                                                 (emax7[LANE].lmmd[i][j]&1<<c)) { mark=1;emax7[LANE].lmmd[i][j]&=~(1<<c);dmadr=lmmicp->top;dmlen=lmmicp->len;dmnxt=lmmicp1->top;dmrw=1;}/* ï¿½ï¿½ drain_dirty_lmm */
     else                                                                                               { mark=0;                                                                                              }
   }
   else if (phase == 2) { /* load */
-    if     ((lmmc_stat== 8            && !lmm_ready)                                                                                                                                                           /* ¡ü1 lmr & !ready */
-         || (lmmc_stat== 9            && !lmm_readz)                                                                                                                                                           /* ¡ü7 lmp & !readz */
-         || (lmmc_stat==10                         )                                                                                                                                                           /* ¡ü3 lmf always load */
-         || (lmmc_stat==14                         ))                                                  { mark=1;                                dmadr=lmmicp->top;dmlen=lmmicp->len;dmnxt=lmmicp1->top;dmrw=0;}/* ¡ü3 lmx always load */
+    if     ((lmmc_stat== 8            && !lmm_ready)                                                                                                                                                           /* ï¿½ï¿½1 lmr & !ready */
+         || (lmmc_stat== 9            && !lmm_readz)                                                                                                                                                           /* ï¿½ï¿½7 lmp & !readz */
+         || (lmmc_stat==10                         )                                                                                                                                                           /* ï¿½ï¿½3 lmf always load */
+         || (lmmc_stat==14                         ))                                                  { mark=1;                                dmadr=lmmicp->top;dmlen=lmmicp->len;dmnxt=lmmicp1->top;dmrw=0;}/* ï¿½ï¿½3 lmx always load */
     else                                                                                               { mark=0;                                                                                              }/* skip load */
   }
   else if (phase == 3) { /* exec */
-    if      (lmmc_stat== 9 && (lastdist||!lmmc_ofsz)) { mark=1;                                                                                 dmadr=lmmicp->top;dmlen=lmmicp->len;                   dmrw=0;}/* ¡ü5 lmp */
-    else if (lmmc_stat==12 || lmmc_stat==14         ) { mark=0;          emax7[LANE].lmmd[i][j]|=(1<<c);                                                                                                      }/* ¡ü6 lmw/lmx */
-    else if (lmmc_stat==13                          ) { mark=            emax7[LANE].lmmd[m][j]& (1<<c);                  emax7[LANE].lmmd[m][j]|=((!lastdist)<<c);dmadr=lmmicp->top;dmlen=lmmicp->len;dmrw=1;}/* ¡ü6 lmd & dirty */
+    if      (lmmc_stat== 9 && (lastdist||!lmmc_ofsz)) { mark=1;                                                                                 dmadr=lmmicp->top;dmlen=lmmicp->len;                   dmrw=0;}/* ï¿½ï¿½5 lmp */
+    else if (lmmc_stat==12 || lmmc_stat==14         ) { mark=0;          emax7[LANE].lmmd[i][j]|=(1<<c);                                                                                                      }/* ï¿½ï¿½6 lmw/lmx */
+    else if (lmmc_stat==13                          ) { mark=            emax7[LANE].lmmd[m][j]& (1<<c);                  emax7[LANE].lmmd[m][j]|=((!lastdist)<<c);dmadr=lmmicp->top;dmlen=lmmicp->len;dmrw=1;}/* ï¿½ï¿½6 lmd & dirty */
 #ifndef IGNORE_LDDMQ_HANDSHAKE
 //  else if (lmmc_stat==11                          ) { mark=1;        } /* LDDMQ */
 //  else if (lmmc_stat==15                          ) { mark=1;        } /* TR    */
@@ -704,7 +398,7 @@ printf("DR..DMA phase=%x i=%d j=%d dirty=%x\n", phase, i, j, emax6.lmmd[i][j]);
       emax7[LANE].dmalen  = (concat_adr[LANE][c])?concat_len[LANE][c]:dmlen; /* length should be # of words */
     }
     else if (phase == 3 && dmrw==1) { /* pdrain */
-      emax7[LANE].ddraddr = dmadr+(Sll)(int)lmmicp->ofs; /* ¡ú¡ú¡úPDRAIN address should be 4B-aligned */
+      emax7[LANE].ddraddr = dmadr+(Sll)(int)lmmicp->ofs; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PDRAIN address should be 4B-aligned */
       emax7[LANE].lmmaddr = emax7[LANE].ddraddr;
       emax7[LANE].dmalen  = dmlen; /* length should be # of words */
     }
@@ -717,7 +411,7 @@ printf("DR..DMA phase=%x i=%d j=%d dirty=%x\n", phase, i, j, emax6.lmmd[i][j]);
 	  emax7[LANE].dmalen  = (concat_adr[LANE][c])?concat_len[LANE][c]:dmlen; /* length should be # of words */
 	}
 	else {
-	  emax7[LANE].ddraddr = dmadr+(Sll)(int)lmmicp->ofs; /* ¡ú¡ú¡úPLOAD address should be 4B-aligned */
+	  emax7[LANE].ddraddr = dmadr+(Sll)(int)lmmicp->ofs; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PLOAD address should be 4B-aligned */
 	  emax7[LANE].lmmaddr = emax7[LANE].ddraddr;
 	  emax7[LANE].dmalen  = dmlen; /* length should be # of words */
 	}
@@ -730,10 +424,10 @@ printf("DR..DMA phase=%x i=%d j=%d dirty=%x\n", phase, i, j, emax6.lmmd[i][j]);
 	if (phase == 2) /* load */
 	  emax7[LANE].plist = dmadr+emax7[LANE].blkcount*8; /* address should be 4B-aligned */
 	else
-	  emax7[LANE].plist = dmadr+emax7[LANE].blkcount*8+(Sll)(int)lmmicp->ofs; /* ¡ú¡ú¡úPLOAD address should be 4B-aligned */
+	  emax7[LANE].plist = dmadr+emax7[LANE].blkcount*8+(Sll)(int)lmmicp->ofs; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PLOAD address should be 4B-aligned */
 	emax7[LANE].blksize  = 32<<lmmicp->blk; /* max:10bit */
 	if (emax7[LANE].blkcount==0) {
-	  emax7[LANE].lmmblktop = 0; /* ¡ú¡ú¡úÌ¤¼ÂÁõ¡ú¡ú¡ú ÀèÆ¬¥¢¥É¥ì¥¹¤¬0¤Ê¤Î¤Ç,addr_range¤Ë¹©É×¤¬É¬Í× */
+	  emax7[LANE].lmmblktop = 0; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½É¥ì¥¹ï¿½ï¿½0ï¿½Ê¤Î¤ï¿½,addr_rangeï¿½Ë¹ï¿½ï¿½×¤ï¿½É¬ï¿½ï¿½ */
 	  emax7[LANE].lmmblklen = dmlen; /* length should be # of words */
 	}
 	emax7[LANE].ddraddr    = emax7[LANE].plist; /* address should be 4B-aligned */
@@ -744,7 +438,7 @@ printf("DR..DMA phase=%x i=%d j=%d dirty=%x\n", phase, i, j, emax6.lmmd[i][j]);
 	if (emax7[LANE].lmmblklen==0)
 	  emax7[LANE].blkcount = 0;
 	else
-	  emax7[LANE].blkcount++; /* ¡ú¡ú¡úÌ¤¼ÂÁõ¡ú¡ú¡ú continue Ê£¿ô²ó¤ÎDMAµ¯Æ°¤¬É¬Í× */
+	  emax7[LANE].blkcount++; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ continue Ê£ï¿½ï¿½ï¿½ï¿½ï¿½DMAï¿½ï¿½Æ°ï¿½ï¿½É¬ï¿½ï¿½ */
       }
 #endif
     }
@@ -787,7 +481,7 @@ emax7_kick_dma(int LANE, int j) /* col */
     return (0);
 
   if (j != emax7[LANE].csel_save) {
-    ((struct reg_ctrl*)emax7[LANE].reg_ctrl)->i[0].csel = j; /* DMA/LDDMQ/TRANSÍÑ¤ËÂÐ¾Ýcol¥»¥Ã¥È */
+    ((struct reg_ctrl*)emax7[LANE].reg_ctrl)->i[0].csel = j; /* DMA/LDDMQ/TRANSï¿½Ñ¤ï¿½ï¿½Ð¾ï¿½colï¿½ï¿½ï¿½Ã¥ï¿½ */
     emax7[LANE].csel_save = j;
   }
 #if defined(FPDDMA)
@@ -841,7 +535,7 @@ emax7_kick_dma(int LANE, int j) /* col */
       ((struct reg_ctrl*)emax7[LANE].reg_ctrl)->i[0].dmrp  = (0LL<<63); /* off */
     }
   }
-  else { /* ¡úÅêµ¡¼Â¹Ô¤Ë¤è¤êcache-fill¤òµ¯Æ°¤·¤Æ¤·¤Þ¤¦.Åêµ¡¼ºÇÔ¸å¤ËDMA¤¬Æ°¤­,cache-fill¤â¤µ¤ì¤ë¤Î¤Çmismatch¤È¤Ê¤ë¡ú */
+  else { /* ï¿½ï¿½ï¿½êµ¡ï¿½Â¹Ô¤Ë¤ï¿½ï¿½cache-fillï¿½ï¿½Æ°ï¿½ï¿½ï¿½Æ¤ï¿½ï¿½Þ¤ï¿½.ï¿½êµ¡ï¿½ï¿½ï¿½Ô¸ï¿½ï¿½DMAï¿½ï¿½Æ°ï¿½ï¿½,cache-fillï¿½â¤µï¿½ï¿½ï¿½Î¤ï¿½mismatchï¿½È¤Ê¤ï¿½ï¿½ */
     /*printf("emax_info[LANE].lmm_mmap-emax_info[LANE].ddr_mmap=%08.8x_%08.8x\n", (Uint)((emax_info[LANE].lmm_mmap-emax_info[LANE].ddr_mmap)>>32), (Uint)(emax_info[LANE].lmm_mmap-emax_info[LANE].ddr_mmap));*/
     if (emax7[LANE].rw == 0) { /* mem->lmm */
       dst = emax7[LANE].lmmaddr-emax_info[LANE].ddr_mmap+emax_info[LANE].lmm_mmap;
@@ -861,7 +555,7 @@ emax7_kick_dma(int LANE, int j) /* col */
 	     (Uint)((Ull)((Ull*)emax7[LANE].ddraddr)>>32), (Uint)(Ull)((Ull*)emax7[LANE].ddraddr));
 #endif
     }
-    /* src¤Èdst¤Ï32B¥¢¥é¥¤¥ó¤µ¤ì¤Æ¤ª¤ê,ÊÒÂ¦¤Î¤ßÈó¥¢¥é¥¤¥ó¤Ë¤Ê¤ë¤³¤È¤Ï¤Ê¤¤ */
+    /* srcï¿½ï¿½dstï¿½ï¿½32Bï¿½ï¿½ï¿½é¥¤ï¿½ó¤µ¤ï¿½Æ¤ï¿½ï¿½ï¿½,ï¿½ï¿½Â¦ï¿½Î¤ï¿½ï¿½ó¥¢¥é¥¤ï¿½ï¿½Ë¤Ê¤ë¤³ï¿½È¤Ï¤Ê¤ï¿½ */
     pio_words = emax7[LANE].dmalen+1;
     if (src & (sizeof(Ull)-1) & sizeof(Uint)) { /* 4B-access 0,4 */
       *(Uint*)dst = *(Uint*)src;
@@ -906,7 +600,6 @@ emax7_kick_dma(int LANE, int j) /* col */
 /*******************************************************************************/
 /******************************** EMAX7-START **********************************/
 /*******************************************************************************/
-
 /* lmmwb=0: if lmm never be written back to DDR */
 emax7_pre_with_keep_cache()
 {
@@ -936,7 +629,6 @@ emax7_pre_with_drain_cache()
 /*******************************************************************************/
 /******************************** EMAX7 NCLIB (no conv-c2c)*********************/
 /*******************************************************************************/
-
 void /*__attribute__((always_inline))*/
 cex(Uint op_cx, Ull *ex, Ull c3, Ull c2, Ull c1, Ull c0, Ushort pattern)
 {
@@ -1027,7 +719,7 @@ int convf32tou7(Uchar *out, float in)
   out_u7.b = 0;
 
   in = abs(in);
-  if  (in >= 1.0) out_u7.e = 63;    /* ¾è»»»þ¤Ï6bitÉ½¸½(-1.0+1.0) */
+  if  (in >= 1.0) out_u7.e = 63;    /* ï¿½è»»ï¿½ï¿½ï¿½ï¿½6bitÉ½ï¿½ï¿½(-1.0+1.0) */
   else            out_u7.e = in*64; /* number of 1 */    
 
   *out = *(Uchar*)&out_u7;
@@ -1044,7 +736,7 @@ int convf32tou8(Uchar *out, float in)
   out_u8.s = in_f32.s;
 
   in = abs(in);
-  if  (in >= 2.0) out_u8.e = 127;   /* ¾è»»»þ¤Ï6bitÉ½¸½(-1.0+1.0) */
+  if  (in >= 2.0) out_u8.e = 127;   /* ï¿½è»»ï¿½ï¿½ï¿½ï¿½6bitÉ½ï¿½ï¿½(-1.0+1.0) */
   else            out_u8.e = in*64; /* number of 1 */    
 
   *out = *(Uchar*)&out_u8;
@@ -1057,7 +749,7 @@ int convu8tof32(float *out, Uchar in)
   f32bit out_f32;
 
   *(Uchar*)&in_u8 = in;
-  *(float*)&out_f32 = (float)in_u8.e/64; /* 6bitÉ½¸½(-2.0+2.0) */
+  *(float*)&out_f32 = (float)in_u8.e/64; /* 6bitÉ½ï¿½ï¿½(-2.0+2.0) */
   out_f32.s = in_u8.s;
   *out = *(float*)&out_f32;
 
@@ -1109,13 +801,11 @@ Ull shfl(Ull in, Ull r)
   return(in);
 }
 
-int enable_x11;    /* 0 or set in extern */
-
 void x11_softu64_dist(float, float);
 int softu64(int stage, Ull *o1, Ull *o2, Ull *o3, Ull r1, Ull r2, Ull r3, Ull r4) /* o <- s1 + s2 * s3 */
      /* stage:1 stage_2 in EXEC:  r2*r3 64bit*2  -> *o1 32bit*8 b mult     */
      /* stage:2 stage_3 in EXEC:  *o1,r4 32bit*8 -> *o2 8bit+8bit count up */
-     /* stage:3 stage_4 in EXEC:  r1 + *o2¦²     -> *o3 8bit               */
+     /* stage:3 stage_4 in EXEC:  r1 + *o2ï¿½ï¿½     -> *o3 8bit               */
 {
   int i, j;
   Ull u[8];
@@ -1140,31 +830,31 @@ int softu64(int stage, Ull *o1, Ull *o2, Ull *o3, Ull r1, Ull r2, Ull r3, Ull r4
   int s2e   = (r2>>(i*8))&0x7f; s2e = s2e<SPU_DATA_BITS?s2e:SPU_DATA_BITS;
   int s3e   = (r3>>(i*8))&0x7f; s3e = s3e<SPU_DATA_BITS?s3e:SPU_DATA_BITS;
 #if 0
-      s2[i] = (Ull)0x7fffffffffffffffLL>>(63-s2e); //¾è»»¤Ï6bit*6bit->6bit
-      s3[i] = (Ull)0x7fffffffffffffffLL>>(63-s3e); //¾è»»¤Ï6bit*6bit->6bit
-      // ²¼°Ì64bitÆâ¤Ç¥·¥ã¥Ã¥Õ¥ë
+      s2[i] = (Ull)0x7fffffffffffffffLL>>(63-s2e); //ï¿½è»»ï¿½ï¿½6bit*6bit->6bit
+      s3[i] = (Ull)0x7fffffffffffffffLL>>(63-s3e); //ï¿½è»»ï¿½ï¿½6bit*6bit->6bit
+      // ï¿½ï¿½ï¿½ï¿½64bitï¿½ï¿½Ç¥ï¿½ï¿½ï¿½Ã¥Õ¥ï¿½
       s2[i] = shfl(s2[i], u[2]);
       s3[i] = shfl(s3[i], u[3]);
 #else
-      // Íð¿ô¤òSPU_DATA_WIDTH bitËè¤Ë»ÈÍÑ.ÆþÎÏÃÍ¤Î6bit¤¬¤Û¤È¤ó¤É15°Ê²¼¤Ç¤¢¤ë¤³¤È¤òÍøÍÑ(63¶á¤¯¤Ê¤ë¤È¸íº¹¤¬½Ð¤ë¤Ï¤º)
+      // ï¿½ï¿½ï¿½ï¿½ï¿½SPU_DATA_WIDTH bitï¿½ï¿½Ë»ï¿½ï¿½ï¿½.ï¿½ï¿½ï¿½ï¿½ï¿½Í¤ï¿½6bitï¿½ï¿½ï¿½Û¤È¤ï¿½ï¿½15ï¿½Ê²ï¿½ï¿½Ç¤ï¿½ï¿½ë¤³ï¿½È¤ï¿½ï¿½ï¿½ï¿½ï¿½(63ï¿½á¤¯ï¿½Ê¤ï¿½È¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¤ï¿½Ï¤ï¿½)
       s2[i] = 0LL;
       s3[i] = 0LL;
       for (j=0; j<SPU_COUT_BITS; j++) {
-	int k = j * SPU_DATA_DIST; /* SPU_DATA_BITS=15¤Ê¤é4bitËè */
+	int k = j * SPU_DATA_DIST; /* SPU_DATA_BITS=15ï¿½Ê¤ï¿½4bitï¿½ï¿½ */
 	s2[i] |= ((u[(i+0)%8]>>k&SPU_DATA_BITS)<=s2e)<<j;
 	s3[i] |= ((u[(i+1)%8]>>k&SPU_DATA_BITS)<=s3e)<<j;
       }
       //printf("%08.8x_%08.8x %08.8x_%08.8x %d:%08.8x %d:%08.8x\n", (Uint)(u2>>32), (Uint)u2, (Uint)(u3>>32), (Uint)u3, s2e, (Uint)s2[i], s3e, (Uint)s3[i]);
 #endif
-      // s2*s3 ³ÆÍ×ÁÇ¤Îstochastic¾è»»
-      o1[i] = s2[i] & s3[i];                         // 1*1=1¤Ë¤Ê¤ë ¼ÂºÝ¤Ï¾å°ÌSPU_DATA_BITS¤Î¤ßAND
-      o1[i] = ss[i]<<63|(o1[i]&0x7fffffffffffffffLL);// stage2¤Î½ÐÎÏ¤Ï(ÀèÆ¬Éä¹æbit|SPU_DATA_BITS bit) * 8
+      // s2*s3 ï¿½ï¿½ï¿½ï¿½ï¿½Ç¤ï¿½stochasticï¿½è»»
+      o1[i] = s2[i] & s3[i];                         // 1*1=1ï¿½Ë¤Ê¤ï¿½ ï¿½ÂºÝ¤Ï¾ï¿½ï¿½SPU_DATA_BITSï¿½Î¤ï¿½AND
+      o1[i] = ss[i]<<63|(o1[i]&0x7fffffffffffffffLL);// stage2ï¿½Î½ï¿½ï¿½Ï¤ï¿½(ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½bit|SPU_DATA_BITS bit) * 8
     }
     break;
   case 2: /* stage3 */
     pc = 0;
     nc = 0;
-    // Àµ¿ô/Éé¿ô¥°¥ë¡¼¥×¤´¤È¤Ë¡¤²¼°ÌÉôÊ¬¤ò¥¹¥Ê¥Ã¥×¥·¥ç¥Ã¥È
+    // ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë¡¼ï¿½×¤ï¿½ï¿½È¤Ë¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¬ï¿½ò¥¹¥Ê¥Ã¥×¥ï¿½ï¿½ï¿½Ã¥ï¿½
     for (j=0; j<SPU_COUT_BITS; j++) {
       for (i=0; i<8; i++) { /* s2 * s3 -> ad2 */
 	if (!(o1[i]>>63)) pc += (o1[i] & (1LL<<j))!=0;
@@ -1178,10 +868,10 @@ int softu64(int stage, Ull *o1, Ull *o2, Ull *o3, Ull r1, Ull r2, Ull r3, Ull r4
   case 3: /* stage4 */
     pc = *o2>>32&0xffff; /* high */
     nc = *o2    &0xffff; /* low */
-    // s1¤ò¤µ¤é¤Ë²Ã»»
-    if (!(r1&0x80)) pc += (r1&0x7f); /* merge pos s1 s1.e¤ÏºÇÂç7bit */
-    else            nc += (r1&0x7f); /* merge neg s1 s1.e¤ÏºÇÂç7bit */
-    // Àµ¿ô¤ÈÉé¿ô¤Î²Ã»»(s1:7bit + s2*s3:6bit->7bit)
+    // s1ï¿½ò¤µ¤ï¿½Ë²Ã»ï¿½
+    if (!(r1&0x80)) pc += (r1&0x7f); /* merge pos s1 s1.eï¿½Ïºï¿½ï¿½ï¿½7bit */
+    else            nc += (r1&0x7f); /* merge neg s1 s1.eï¿½Ïºï¿½ï¿½ï¿½7bit */
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î²Ã»ï¿½(s1:7bit + s2*s3:6bit->7bit)
     if (pc >= nc) {
       os = 0x00; /* pos */
       oc = pc-nc; /* # of 1 */
@@ -1219,19 +909,6 @@ int softu64(int stage, Ull *o1, Ull *o2, Ull *o3, Ull r1, Ull r2, Ull r3, Ull r4
   return (0);
 }
 
-Ull __attribute__((always_inline))
-exm(Ull s, Uchar exp)
-{
-  switch (exp) {
-  case EXP_H3210: return ( s );
-  case EXP_H1010: return ((s<<32&0xffffffff00000000LL) | (s    &0x00000000ffffffffLL));
-  case EXP_H3232: return ((s    &0xffffffff00000000LL) | (s>>32&0x00000000ffffffffLL));
-  case EXP_B7632: return ((s>> 8&0x00ff000000ff0000LL) | (s>>16&0x000000ff000000ffLL));
-  case EXP_B5410: return ((s<< 8&0x00ff000000ff0000LL) | (s    &0x000000ff000000ffLL));
-  default:        return ( s );
-  }
-}
-
 int  /*__attribute__((always_inline))*/
 exe(Uint op_ex1, Ull *d, Ull s1, Uint exp1, Ull s2, Uint exp2, Ull s3, Uint exp3, Uint op_ex2, Ull r4, Uint op_ex3, Ull r5)
 {
@@ -1255,13 +932,13 @@ exe(Uint op_ex1, Ull *d, Ull s1, Uint exp1, Ull s2, Uint exp2, Ull s3, Uint exp3
   case OP_NOP:
     ex1_outd = r1;
     break;
-  case OP_WHILE: /* emax7nc¤Îlib¤È¤·¤Æ¤Ï»ÈÍÑ¤»¤º,bsim/emax7.c¤¬siml¤Ë»ÈÍÑ */
+  case OP_WHILE: /* emax7ncï¿½ï¿½libï¿½È¤ï¿½ï¿½Æ¤Ï»ï¿½ï¿½Ñ¤ï¿½ï¿½ï¿½,bsim/emax7.cï¿½ï¿½simlï¿½Ë»ï¿½ï¿½ï¿½ */
     t0 = (r1&0x00000000ffffffffLL)+(r2&0x00000000ffffffffLL);
     t0 &= 0x00000000ffffffffLL;
     ex1_outd = t0;
     if (t0==0) retval = 1;
     break;
-  case OP_FOR: /* emax7nc¤Îlib¤È¤·¤Æ¤Ï»ÈÍÑ¤»¤º,bsim/emax7.c¤¬siml¤Ë»ÈÍÑ */
+  case OP_FOR: /* emax7ncï¿½ï¿½libï¿½È¤ï¿½ï¿½Æ¤Ï»ï¿½ï¿½Ñ¤ï¿½ï¿½ï¿½,bsim/emax7.cï¿½ï¿½simlï¿½Ë»ï¿½ï¿½ï¿½ */
     t0 = (r1&0x00000000ffffffffLL)+(r2&0x00000000ffffffffLL);
     t0 &= 0x00000000ffffffffLL;
     ex1_outd = t0;
@@ -1742,11 +1419,11 @@ mex(Uint op_mex2, Uchar **d2, Uchar *base2, Ull ofs2, Uint op_mex1, Uchar **d1, 
   case OP_NOP:
     *d1 = base1;
     break;
-  case OP_ALWAYS: /* base++ ÂÐ±þ */
+  case OP_ALWAYS: /* base++ ï¿½Ð±ï¿½ */
     *d1 = base1 + ofs1;
     break;
   case OP_CMPA_GE:
-    //d1¼«Ê¬(ss1)¤¬ffffffff¤Ê¤éÄä»ß. base1==limit2¤Ê¤éÄä»ß. base2==limit ¤Ê¤éÁ°¿Ê
+    //d1ï¿½ï¿½Ê¬(ss1)ï¿½ï¿½ffffffffï¿½Ê¤ï¿½ï¿½ï¿½ï¿½. base1==limit2ï¿½Ê¤ï¿½ï¿½ï¿½ï¿½. base2==limit ï¿½Ê¤ï¿½ï¿½ï¿½ï¿½ï¿½
     if (!limit) /* sparse matrix */
       *d1 = base1 + ((ss1!=0xffffffff && ss2>=ss1) ? ofs1:0);
     else { /* merge sort */
@@ -1765,11 +1442,11 @@ mex(Uint op_mex2, Uchar **d2, Uchar *base2, Ull ofs2, Uint op_mex1, Uchar **d1, 
   case OP_NOP:
     *d2 = base2;
     break;
-  case OP_ALWAYS: /* base++ ÂÐ±þ */
+  case OP_ALWAYS: /* base++ ï¿½Ð±ï¿½ */
     *d2 = base2 + ofs2;
     break;
   case OP_CMPA_LE:
-    //d2¼«Ê¬(ss2)¤¬ffffffff¤Ê¤éÄä»ß. base2==limit ¤Ê¤éÄä»ß. base1==limit2¤Ê¤éÁ°¿Ê
+    //d2ï¿½ï¿½Ê¬(ss2)ï¿½ï¿½ffffffffï¿½Ê¤ï¿½ï¿½ï¿½ï¿½. base2==limit ï¿½Ê¤ï¿½ï¿½ï¿½ï¿½. base1==limit2ï¿½Ê¤ï¿½ï¿½ï¿½ï¿½ï¿½
     if (!limit) /* sparse matrix */
       *d2 = base2 + ((ss2!=0xffffffff && ss2<=ss1) ? ofs2:0);
     else { /* merge sort */
@@ -1783,29 +1460,6 @@ mex(Uint op_mex2, Uchar **d2, Uchar *base2, Ull ofs2, Uint op_mex1, Uchar **d1, 
     printf("emax7lib: mex: undefined op_mex2=%d\n", op_mex2);
     break;
   }  
-}
-
-Ull __attribute__((always_inline))
-eam(Ull ofs, Uchar msk)
-{
-  switch (msk) {
-  case  MSK_D0: return (ofs);
-  case  MSK_W1: return (ofs>>32);
-  case  MSK_W0: return (ofs&0x00000000ffffffffLL);
-  case  MSK_H3: return (ofs>>48&0x000000000000ffffLL);
-  case  MSK_H2: return (ofs>>32&0x000000000000ffffLL);
-  case  MSK_H1: return (ofs>>16&0x000000000000ffffLL);
-  case  MSK_H0: return (ofs&0x000000000000ffffLL);
-  case  MSK_B7: return (ofs>>56&0x00000000000000ffLL);
-  case  MSK_B6: return (ofs>>48&0x00000000000000ffLL);
-  case  MSK_B5: return (ofs>>40&0x00000000000000ffLL);
-  case  MSK_B4: return (ofs>>32&0x00000000000000ffLL);
-  case  MSK_B3: return (ofs>>24&0x00000000000000ffLL);
-  case  MSK_B2: return (ofs>>16&0x00000000000000ffLL);
-  case  MSK_B1: return (ofs>>8&0x00000000000000ffLL);
-  case  MSK_B0: return (ofs&0x00000000000000ffLL);
-  default: printf("emax7lib: eag: undefined msk=%d\n", msk); return (0LL);;
-  }
 }
 
 void /*__attribute__((always_inline))*/
@@ -1831,9 +1485,6 @@ mo4(Uint op_mm, Ull ex, Ull *d, Ull base, Ull offset, Uchar msk, Ull top, Uint l
   eag(&adr, base, eam(offset, msk));
   mmp(op_mm, ex, d, adr, top, len, blk);
 }
-
-int emax7_unaligned_load_valid; /* mop(BR[][][1]adr+8); mop(BR[][][0]adr);Ï¢Â³»ØÄê¤òÁÛÄê¤·,1¤Î¾ì¹çhigh¤¬Í­¸ú,0¤Î¾ì¹çÌµ¸ú  */
-Ull emax7_unaligned_load_high;  /* mop(BR[][][1]adr+8); mop(BR[][][0]adr);Ï¢Â³»ØÄê¤òÁÛÄê¤·,highÂ¦¤ò°ì¼¡ÊÝÂ¸¤·lowÂ¦¤Ëmerge */
 
 void /*__attribute__((always_inline))*/
 mmp(Uint op_mm, Ull ex, Ull *d, Ull adr, Ull top, Uint len, Uint blk)
@@ -1946,7 +1597,7 @@ mmp(Uint op_mm, Ull ex, Ull *d, Ull adr, Ull top, Uint len, Uint blk)
     *((Ull*)(adr&~31LL)+3) = *(d+3);
     break;
   case OP_TR: /* 64bit*4 exec Send transaction */
-    /* addr¤òtransaction()»ØÄê¤Ë»ÈÍÑ */
+    /* addrï¿½ï¿½transaction()ï¿½ï¿½ï¿½ï¿½Ë»ï¿½ï¿½ï¿½ */
     if (c0) {
       Ull (*trans)() = top;
       (trans)(*(d+0), *(d+1), *(d+2), *(d+3));

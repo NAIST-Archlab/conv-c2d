@@ -1,0 +1,32 @@
+## EMAX7 Library                       ##
+##         Copyright (C) 2012 by NAIST ##
+##         Primary writer: Y.Nakashima ##
+##                nakashim@is.naist.jp ##
+
+PROGRAM	      = libemax7.a
+ifeq ($(MACHTYPE),aarch64)
+CFLAGS        = -O2 -fsigned-char -fcommon
+LDFLAGS       = -DARMZYNQ
+else
+CFLAGS        = -O2 -m32 -fsigned-char
+LDFLAGS       = -m32 -DARMZYNQ
+endif
+LIBFLAGS      =
+
+OBJS	      = emax7lib.o
+
+SRCS	      = emax7lib.c
+
+all:	      $(PROGRAM)
+
+$(PROGRAM):     $(OBJS)
+		@ar rc $(PROGRAM) $(OBJS)
+		@ranlib $(PROGRAM)
+
+.c.o:;		cc -c $(CFLAGS) $(LDFLAGS) $<
+
+clean:;		@rm -f $(OBJS)
+
+###
+
+emax7lib.o:	emax7lib.h emax7.h
